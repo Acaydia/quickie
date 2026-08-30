@@ -40,11 +40,16 @@ verification only you can complete.
    money).
 2. Create one product, e.g. "Speech Unlock," priced around $8.99, type
    "Single Payment."
-3. Open the product's variant and copy its **Buy Link** — paste it into
+3. **On that product's variant, enable "License Keys" and set the
+   activation limit to 1.** This is not optional — `api/unlock.js` relies on
+   Lemon Squeezy's license-key activation (one-time use per order) to stop a
+   single paid order from unlocking unlimited speeches. Without this
+   enabled, unlock requests will fail with `license_not_ready`.
+4. Open the product's variant and copy its **Buy Link** — paste it into
    `config.js` as `SPEECH_WRITER_CHECKOUT_URL`.
-4. Under Settings → API, create an API key — this becomes
+5. Under Settings → API, create an API key — this becomes
    `LEMONSQUEEZY_API_KEY` in Vercel.
-5. Note your **Store ID** and the product variant's **Variant ID** (visible
+6. Note your **Store ID** and the product variant's **Variant ID** (visible
    in the dashboard URLs or via the API) — these become
    `LEMONSQUEEZY_STORE_ID` and `LEMONSQUEEZY_VARIANT_ID` in Vercel. They're
    optional but recommended: without them, `api/unlock.js` only checks that
@@ -86,16 +91,17 @@ vercel dev
 This serves the static pages and `/api` functions locally, reading the same
 environment variables from a `.env.local` file (see `vercel env pull`).
 
-## Known limitation
+## How single-use redemption works (no database)
 
-`api/unlock.js` binds a paid order to a specific speech using Lemon
-Squeezy's checkout custom-data echo, on a best-effort basis. If Lemon
-Squeezy doesn't return that custom data for a given order, the check falls
-back to "was this order paid for the right product" — meaning a shared
-order ID could theoretically unlock more than one speech. There's no
-database in this stack to track single-use redemption; if this becomes a
-real problem, add Vercel KV (or similar) to mark each order ID as redeemed
-after first use.
+A paid order alone doesn't prove which speech it should unlock, and nothing
+stops a client from generating unlimited free preview/blob pairs from
+`api/generate.js`. So `api/unlock.js` doesn't just check "is this order
+paid" — it also requires **activating** that order's Lemon Squeezy license
+key (see setup step 3 above), which Lemon Squeezy allows exactly once per
+order when the activation limit is set to 1. The first unlock request for a
+given order succeeds; any replay of that same order ID fails with
+`order_already_redeemed`. This pushes single-use tracking onto Lemon
+Squeezy's own infrastructure instead of needing a database here.
 
 ## Files
 
