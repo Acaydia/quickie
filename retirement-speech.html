@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Retirement Speech Generator — Personalized in Under a Minute</title>
+<meta name="description" content="Giving a retirement speech for a coworker, boss, or friend? Answer a few quick questions and get a personalized, ready-to-read speech instantly.">
+<link rel="stylesheet" href="/style.css">
+<script src="https://assets.lemonsqueezy.com/lemon.js" defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+</head>
+<body data-default-occasion="retirement">
+<div class="wrap">
+  <header class="site">
+    <a class="logo" href="/">Occasion Speech Writer</a>
+  </header>
+
+  <nav class="occasions">
+    <a href="/best-man-speech">Best Man</a>
+    <a href="/maid-of-honor-speech">Maid of Honor</a>
+    <a href="/wedding-toast">Wedding Toast</a>
+    <a href="/retirement-speech" class="active">Retirement</a>
+  </nav>
+
+  <h1>Retirement speech that honors the whole career, not just the job title</h1>
+  <p class="subhead">Send off a coworker, boss, or friend the right way. Tell us about them and we'll write a speech worth applauding.</p>
+
+  <div class="card">
+    <form id="speech-form">
+      <label for="occasion">Occasion</label>
+      <select id="occasion" required></select>
+
+      <div class="row2">
+        <div>
+          <label for="speaker-name">Your name</label>
+          <input id="speaker-name" type="text" placeholder="Casey" required>
+        </div>
+        <div>
+          <label for="honoree-name">Retiree's name</label>
+          <input id="honoree-name" type="text" placeholder="Pat Reynolds" required>
+        </div>
+      </div>
+
+      <label for="relationship">Your relationship to them</label>
+      <input id="relationship" type="text" placeholder="Direct report, manager, colleague of 20 years…">
+
+      <label for="anecdotes">A few memories, achievements, or details to include</label>
+      <textarea id="anecdotes" placeholder="Years of service, a memorable project, their mentorship, plans for retirement…"></textarea>
+
+      <div class="row2">
+        <div>
+          <label for="tone">Tone</label>
+          <select id="tone">
+            <option value="heartfelt">Heartfelt</option>
+            <option value="funny">Funny &amp; light</option>
+            <option value="formal" selected>Formal</option>
+            <option value="mixed">Mix of funny &amp; heartfelt</option>
+          </select>
+        </div>
+        <div>
+          <label for="length">Length</label>
+          <select id="length">
+            <option value="short">Short (~1 min)</option>
+            <option value="medium" selected>Medium (~2-3 min)</option>
+            <option value="long">Long (~4-5 min)</option>
+          </select>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary" id="generate-btn">Write My Speech</button>
+      <div class="status" id="form-status"></div>
+    </form>
+  </div>
+
+  <div class="card" id="result">
+    <h2>Your speech</h2>
+    <div id="preview-wrap" class="fade-edge">
+      <div class="speech-text" id="preview-text"></div>
+    </div>
+
+    <div class="unlock-box" id="unlock-box">
+      <p>That's a free preview. Unlock the full speech, formatted and ready to read, for <span class="price" id="unlock-price">$8.99</span>.</p>
+      <button class="btn-primary" id="unlock-btn">Unlock Full Speech</button>
+      <div class="status" id="unlock-status"></div>
+    </div>
+
+    <div class="unlocked-actions" id="unlocked-actions" style="display:none;">
+      <button class="btn-secondary" id="copy-btn">Copy Text</button>
+      <button class="btn-secondary" id="download-txt-btn">Download .txt</button>
+      <button class="btn-secondary" id="download-pdf-btn">Download PDF</button>
+    </div>
+  </div>
+
+  <footer class="site">
+    <p>Generated speeches are a starting point — feel free to edit before you deliver it. &middot; <a href="/">Occasion Speech Writer</a></p>
+  </footer>
+</div>
+<script src="/config.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>
