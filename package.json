@@ -1,0 +1,12 @@
+{
+  "name": "occasion-speech-writer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "AI-generated wedding, best man, and retirement speeches with a pay-to-unlock full version.",
+  "scripts": {
+    "dev": "vercel dev"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
