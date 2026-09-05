@@ -122,6 +122,16 @@ module.exports = async function handler(req, res) {
     return;
   }
 
+  // Decrypt BEFORE activating the license key. Otherwise a malformed/tampered
+  // blob can burn the single-use activation and leave a paid customer stuck.
+  let fullText;
+  try {
+    fullText = decrypt(blob, secret);
+  } catch (err) {
+    res.status(400).json({ error: "invalid_blob" });
+    return;
+  }
+
   let activated;
   try {
     activated = await activateLicenseKey(licenseKey);
@@ -133,14 +143,6 @@ module.exports = async function handler(req, res) {
   if (!activated) {
     // Already activated once for this order — reject the replay.
     res.status(402).json({ error: "order_already_redeemed" });
-    return;
-  }
-
-  let fullText;
-  try {
-    fullText = decrypt(blob, secret);
-  } catch (err) {
-    res.status(400).json({ error: "invalid_blob" });
     return;
   }
 
