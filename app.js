@@ -222,11 +222,21 @@
     }
     var doc = new window.jspdf.jsPDF({ unit: "pt", format: "letter" });
     var margin = 56;
+    var pageHeight = doc.internal.pageSize.getHeight();
     var maxWidth = doc.internal.pageSize.getWidth() - margin * 2;
+    var lineHeight = 13 * 1.5;
     var lines = doc.splitTextToSize(text, maxWidth);
     doc.setFont("times", "normal");
     doc.setFontSize(13);
-    doc.text(lines, margin, margin + 10, { lineHeightFactor: 1.5 });
+    var y = margin + 10;
+    for (var i = 0; i < lines.length; i++) {
+      if (y + lineHeight > pageHeight - margin) {
+        doc.addPage();
+        y = margin + 10;
+      }
+      doc.text(lines[i], margin, y);
+      y += lineHeight;
+    }
     doc.save(fileNameFor("pdf"));
   }
 
