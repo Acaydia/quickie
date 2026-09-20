@@ -19,9 +19,11 @@ A standing law, and it overrides everything below. No price level, stop, size, o
 
 Three failure modes, all of which have already happened here:
 
-**Asserting absence.** This one has now happened three times, each time cheaper to check than to assume. "AVAX has no ETF proxy" — `search` returns four. "Crypto has no price history" — the scanner returns ATR, RSI, Bollinger bands and pivots for the entire crypto universe in one call. The first false claim left AVAX with no stop at all; the second built an entire proxy apparatus whose numbers understated alt volatility by up to 42%.
+**Asserting absence.** This one has now happened three times, each time cheaper to check than to assume. "AVAX has no ETF proxy" — `search` returns four. "Crypto has no price history" — the scanner returns ATR, RSI, Bollinger bands, pivots **and the raw OHLC series** for the entire crypto universe in one call. The first false claim left AVAX with no stop at all; the second built an entire proxy apparatus whose numbers understated alt volatility by up to 42% and misplaced a resting bid by 7.8%.
 
 Note the failure was subtler the second time: enumerating tool names and finding no `get_crypto_historicals` is *evidence*, and the dedicated historicals tools really do reject crypto. But a tool's name is not its capability surface, and an adjacent subsystem carried the data all along. **Absence has to be demonstrated by a call that failed, not inferred from a catalogue that lacked the obvious name.** Run the lookup: enumerate, `search`, read `description`, and try the call on the asset you doubt.
+
+One cheap prior outranks all of that machinery: **if a claim of absence contradicts something the product visibly does, the claim is already wrong.** The Robinhood app draws a candlestick chart with indicators for every coin it lists. "This broker exposes no crypto price history" was refuted by its own front end, and that is where the claim should have died — before any tool call, and long before distilling nineteen traders whose entire method is reading that chart. A document full of chart-dependent rules that also asserts the charts are unreachable is not a cautious document, it is an incoherent one. When the conclusion is "the data for my whole method does not exist," the overwhelmingly likelier reading is that the call has not been found yet.
 
 **Inheriting an inference.** A subagent labelled its IBIT-to-BTC ratio "inferred, ±0.3%", and that caveat was dropped when the number became a resting order 6.5% from market. **A figure does not become measured by being passed along.** Carry the error bar, or re-derive it from something you can measure — and prefer the derivation that needs fewer unmeasurable inputs.
 
@@ -151,6 +153,8 @@ So a limit order saves the spread only when you are willing to wait for the mark
 
 The scanner carries it. `FILTER_TYPE_INSTRUMENT_TYPE` accepts `CRYPTO`, and every expression from `get_scanner_datapoints` evaluates against crypto pairs — `atr`, `rsi`, `bollingerBandUp/Down`, `pricePosInRange`, `pricePosInBollinger`, `distanceFromPivotS1/S2`, `macd`, `adx`, on any `candlePeriod` from `1m` to `1y`. One `preview_scan` call returns the whole tradable crypto universe with all of it attached.
 
+**It is not only indicators — the raw bars are there too.** The `price_volume` category of `get_scanner_datapoints` exposes `high()`, `low()`, `open()`, `close()`, `priceRange()`, `volume()`, `vwap()`, `pivot()`, `support1/2()` and `resistance1/2()`, each taking either a `candleCount` or a `timePeriod` lookback against any `candlePeriod`. So a coin's own swing structure is directly measurable, which is precisely what section 1 asks for and what the proxy detour was built to approximate. Measured 20 Sep, one-month daily range: BTC **$68,858.17–$82,280.62**, ETH **$2,222.06–$2,667.79**, SOL **$83.917–$114.285**. Note what that exposes about the open book — ETH was entered at $2,667 against a monthly high of $2,667.79, and SOL at $113.11 against $114.285. Both entries sat within 1% of the top of their own monthly range, the single thing the methodology most explicitly warns against, and the proxy workflow never surfaced it.
+
 ```
 filters: [{filter_type: "FILTER_TYPE_INSTRUMENT_TYPE", predicate: "=", values: ["CRYPTO"]}]
 columns: [{display_name: "ATR 14d",
@@ -179,7 +183,9 @@ Also check for blank cells before relying on a row: newly listed pairs (LIT, AER
 
 **Equity proxies still have two narrow uses,** now that direct measurement exists: trading the proxy itself (IBIT, BITX and MSTR have options, OCO brackets and whole-share pricing that crypto lacks), and reading equity-market structure such as ETF flows. For measuring a coin, prefer the coin.
 
-**When converting an equity level into a crypto price, use percentage depth, never a holdings ratio.** The API exposes no fund holdings, so any coin-per-share figure is inferred. A spot ETF tracks spot, so a percentage transfers cleanly: IBIT's verified 42.370 range low against its 46.020 close is 7.93%, which on BTC's $81,112.61 previous close gives $74,679.
+**Do not convert an equity level into a crypto price at all — ask the coin.** This document previously gave a rule for transferring a level by percentage depth: IBIT's verified 42.370 range low against its 46.020 close is 7.93% down, which on BTC's $81,112.61 close gives $74,679, called BTC's range low. Direct measurement puts BTC's one-month low at **$68,858.17**. The proxy number was **7.8% too high**, and the flaw is structural rather than arithmetic — the IBIT window ran from its 3 Sep high to its 15 Sep low, which is not BTC's trailing month, so the two were never measuring the same range. A percentage transferred faithfully between two different windows still yields the wrong level.
+
+The cost was concrete and is still in the book. The resting BTC bid at $74,700 was justified as sitting "at the range low." Against BTC's own structure it sits **43.5% up the range** — mid-range, with no measured support beneath it. It is defensible only on a different basis: it independently lands on BTC's measured lower Bollinger band of $74,811. That is a volatility level, not a structural one, and the two answer different questions. Always name which of the two a level is.
 
 **Alerts are not exits.** `create_alert` only notifies. An alert firing while no agent is running accomplishes nothing. Anything that must happen without supervision has to be a resting order in the broker's book.
 
