@@ -13,6 +13,22 @@ Two sources feed this document, and they are kept separate on purpose.
 
 ---
 
+## 0. Never guess
+
+A standing law, and it overrides everything below. No price level, stop, size, or capability claim goes into an order unless it traces to something measured. When a number cannot be measured, say so and do not place the order.
+
+Three failure modes, all of which have already happened here:
+
+**Asserting absence.** "AVAX has no ETF proxy, so its volatility is unmeasurable" was never checked. `search` returns four AVAX proxies in one call. The false claim is what left AVAX holding a position with no stop. **Before concluding data does not exist, run the lookup that would find it** — enumerate the namespace, run `search`, read the `description` field. Absence of evidence has to be demonstrated, not assumed.
+
+**Inheriting an inference.** A subagent labelled its IBIT-to-BTC ratio "inferred, ±0.3%", and that caveat was dropped when the number became a resting order 6.5% from market. **A figure does not become measured by being passed along.** Carry the error bar, or re-derive it from something you can measure — and prefer the derivation that needs fewer unmeasurable inputs.
+
+**Dressing a convention as a measurement.** "The stop is validated at 2.67 ATR" sounds measured, but the ~3 ATR convention is itself arbitrary, and CryptoCred argues stops belong at structural invalidation rather than any volatility multiple. The ATR is measured; the multiple is a choice. **Say which part is which.** The strongest stops are the ones where structure and volatility independently agree — AVAX's stop sits just under its $8.493 breakout base *and* lands at roughly 3.5 ATR, so both methods point to the same level.
+
+The corollary is that "I cannot measure this" is a valid and useful answer. SUI had no identified catalyst, no structural invalidation to anchor a stop to, and a move that had fully round-tripped. The honest response was to exit, not to invent a level and call it risk management.
+
+---
+
 ## 1. The sizing chain
 
 Position size is **derived, never chosen**. Both CryptoCred risk videos give the identical formula:
@@ -129,13 +145,25 @@ So a limit order saves the spread only when you are willing to wait for the mark
 
 **Crypto has no OCO, and a resting sell reserves the units.** After placing a sell, `quantity_transferable` goes to zero and `quantity_held_for_sell` takes the full amount. A position can therefore carry a take-profit **or** a stop, never both, unless you split the quantity across two orders. Equities do have true OCO via `place_advanced_order`, but it requires whole shares and regular hours.
 
-**Robinhood exposes no price history or indicators for crypto.** There is no crypto historicals or technical-indicator endpoint. Use equity ETF proxies for all analysis: **IBIT** for BTC, **ETHA** for ETH, **SOLZ** for SOL.
+**Robinhood exposes no price history or indicators for crypto.** Verified by enumerating the namespace: the only historicals tools are `get_equity_historicals`, `get_index_historicals` and `get_option_historicals`, and the only crypto price tool is `get_crypto_quotes`, which returns bid/ask/mark plus the previous close and nothing more. So every volatility measurement has to come through an equity proxy.
 
-**Check each proxy's leverage in `get_equity_fundamentals` before scaling its ATR.** ETHA's description reads "passively managed, seeks to track the spot price of Ether," and SOLZ's reads "providing the same daily price movements of Solana" — **both are 1x, so their ATR transfers directly with no adjustment.** BITX is the genuinely leveraged one, measured at 1.96x IBIT on the 18 Sep session. Assuming SOLZ was 2x and halving its ATR understates Solana's volatility by half and produces a stop roughly twice as tight as intended, which is how a correctly-reasoned stop still gets chopped out.
+**Never conclude an asset has no proxy without running `search` on its name.** This is the expensive lesson. AVAX and SUI were both written off here as unmeasurable, which is why AVAX sat with no stop. Both have proxies, and `search` finds them in one call:
 
-Measured 14-day daily ATR on the 18 Sep close: ETHA $0.7308 on a $19.92 close, or 3.67%. SOLZ $0.4821 on an $11.40 close, or 4.23%. Sanity-check any proxy ATR against a peer before trusting it — SOLZ at 1.15x ETHA is plausible for spot Solana, whereas the 10%+ it would imply under a 2x assumption is not.
+| Asset | 1x proxies | Leveraged | Measured ATR |
+| --- | --- | --- | --- |
+| BTC | IBIT | BITX (2x) | 3.03% |
+| ETH | ETHA | — | 3.67% |
+| SOL | SOLZ, VSOL, BSOL, FSOL | SOLT, SLON (2x) | 4.23% |
+| AVAX | VAVX, BAVA, GAVA | AVAZ (2x) | 3.0–3.4% |
+| SUI | none found | SUIL (2x) | 4.71% |
 
-Assets without a proxy — most alts, including AVAX and SUI — can only be traded off a live quote, with no measurable volatility and therefore no defensible stop distance. Do not invent one. That is a data limit, not a judgement call, and the honest response is either to size small enough that the position can go to zero or to leave the position unprotected and say so.
+**Read each fund's own `description` in `get_equity_fundamentals` to get its leverage — never infer it from the ticker.** ETHA "seeks to track the spot price of Ether" and SOLZ provides "the same daily price movements of Solana", so both are 1x and their ATR transfers directly. BITX, AVAZ and SUIL each say "2x the daily price movements", so halve theirs. Guessing that SOLZ was 2x and halving its ATR understates Solana's volatility by half and yields a stop twice as tight as intended — a correctly-reasoned stop that still gets chopped out.
+
+**Cross-check an asset's ATR against a second proxy when one exists.** AVAX measured 3.40% via VAVX (ATR $0.5881 on a $17.30 close) and 3.02% via AVAZ halved (ATR $0.6752 on ~$11.18), which agree closely enough to trust. Also sanity-check the resulting ladder: BTC 3.03% < AVAX 3.2% < ETH 3.67% < SOL 4.23% < SUI 4.71% is a sensible large-to-small-cap ordering, and a number that breaks the ordering is usually a leverage error.
+
+Two limits on proxy data, both real. **Thin proxies understate ATR** — VAVX averages about 11,000 shares a day, and an illiquid series under-reports true range, so treat its ATR as a floor. **Proxies are stale for weekend crypto moves**, because the ETF's last close is Friday's: VAVX's Friday close predates a 14% Saturday AVAX rally entirely.
+
+**To convert an equity proxy level into a crypto price, use percentage depth, not a holdings ratio.** The API does not expose an ETF's coin holdings, so any BTC-per-share figure is inferred and carries error. Percentage works because a spot ETF tracks spot: measure the move you want on the proxy, then apply that percentage to the coin's own quoted price. Worked example — IBIT's verified range low 42.370 against its verified 46.020 close is a 7.93% decline, so on BTC's $81,112.61 previous close the range-low equivalent is $74,679.
 
 **Alerts are not exits.** `create_alert` only notifies. An alert firing while no agent is running accomplishes nothing. Anything that must happen without supervision has to be a resting order in the broker's book.
 
