@@ -116,20 +116,57 @@ to a data limit. **That claim was an assertion nobody checked, and it is false.*
 | AVAX | VAVX, BAVA, GAVA | AVAZ (2x) | 3.40% via VAVX, 3.02% via AVAZ halved |
 | SUI | none found | SUIL (2x) | 4.71% via SUIL halved |
 
-AVAX therefore gets a real stop. Its position was **split** — 1.9 units on a take-profit
-at $9.97, 1.8925 units on a stop at **$8.45**, which sits just below the $8.493 breakout
-base *and* lands at roughly 3.5 ATR. Structure and volatility agree independently, which
-is the strongest form a stop takes.
+Those proxy figures then turned out to be wrong too, for a deeper reason — see below.
 
-SUI is being **exited** rather than stopped, at $0.819. Its measured ATR is 4.71%, so a
-stop was placeable — but SUI has no identified catalyst, its move round-tripped fully
-(it now trades below the $0.8295 close it started from), and there is no structural
-level to anchor an invalidation to. A volatility multiple alone would have been a number
-dressed as a thesis.
+## Corrected again: crypto technicals were always available, so the proxies were needless
 
-Two honest limits on the new numbers: VAVX trades about 11,000 shares a day, and a thin
-series under-reports true range, so 3.40% is a floor rather than a point estimate. And
-every proxy's last close is Friday's, which predates AVAX's 14% Saturday move entirely.
+The claim underneath everything was that Robinhood exposes no crypto price history, which
+forced every measurement through an equity proxy. It is false. The dedicated tools really
+do refuse crypto — `get_equity_historicals` 404s on `BTC-USD` and `BTCUSD`,
+`get_index_historicals` rejects a currency-pair UUID — so enumerating tool *names* makes
+the data look absent. **`preview_scan` carries all of it.** Filtering
+`FILTER_TYPE_INSTRUMENT_TYPE = CRYPTO` returns 49 pairs, and the full expression language
+(`atr`, `rsi`, `bollingerBandUp/Down`, `pricePosInBollinger`, `distanceFromPivotS1`) works
+on every one.
+
+The proxies had been understating volatility the whole time, worst on the small caps:
+
+| Asset | Proxy | Direct | Error |
+| --- | --- | --- | --- |
+| BTC | 3.03% | 2.81% | 8% high |
+| ETH | 3.67% | 3.97% | 8% low |
+| SOL | 4.23% | 4.76% | 11% low |
+| AVAX | 3.0-3.4% | **5.14%** | 34-42% low |
+| SUI | 4.71% | 6.19% | 24% low |
+
+So the AVAX stop believed to sit 3.5 ATR out was really at **2.05 ATR** — half the
+intended room.
+
+Two traps found while testing, both silent. Scoping by `symbol ANY_OF ["BTC"]` returns the
+**Grayscale Bitcoin Mini Trust ETF**, an equity with an ATR of 1.07 on a $35.77 price, and
+raises no error. And combining the `CRYPTO` filter with a symbol scope returns **zero
+rows**, because `symbol` is dxFeed symbology rather than the ticker shown in results.
+
+## AVAX and SUI both exited on direct measurement
+
+**AVAX sold in full at $9.40** (entry $9.229). Five measured facts, one direction: RSI
+**79.2**, second-highest of 49 pairs; price **5.6% above its upper Bollinger band** at
+position 1.197, the most extended of the 21 pairs above $0.50; already faded 6.2% off the
+day's high; and against its own $9.97 target, 1.03 ATR of upside versus 2.11 ATR of risk —
+**0.49:1, requiring a 67% win rate**. The offered-trade test fails plainly: nobody would
+open that position fresh. Monday's Helicon activation made holding through it sell-the-news
+risk rather than a reason to stay.
+
+**SUI sold at $0.812** (entry $0.8621). Its volatility was measurable, so a stop was
+placeable, but SUI had no identified catalyst, its move round-tripped below the $0.8295
+close it started from, and there was no structural level to anchor invalidation to. A
+volatility multiple alone would have been a number dressed as a thesis.
+
+ETH and SOL both validate against direct data and were left alone. ETH's $2,340 stop is
+2.28 ATR out and sits **below** its measured lower Bollinger band of $2,357.79 — correctly
+outside normal volatility. SOL's $97 stop is 2.09 ATR out but sits slightly **above** its
+$94.91 band, a known tightness accepted because widening to $94.50 would lift account risk
+to 2.3%, past the 1-2% cap.
 
 ## Corrected: the BTC bid rested on an inherited inference
 
@@ -149,17 +186,31 @@ ATR(14) measured at 1.3929, and BTC's previous close read from the quote.
 
 ## Live orders
 
-| Asset | Order | Level | Distance | Basis |
-| --- | --- | --- | --- | --- |
-| AVAX | limit sell 1.9 | $9.97 | +4.1% | under the $10 round number |
-| AVAX | stop order 1.8925 | $8.45 | −11.8% | below $8.493 base, ~3.5 ATR |
-| SUI | limit sell 29 | $0.819 | at bid | exit, no thesis |
-| ETH | stop order 0.013121 | $2,340 | −9.8% | 2.67 ATR via ETHA |
-| SOL | stop order 0.48625 | $97 | −10.5% | 2.47 ATR via SOLZ |
-| BTC | limit buy 0.001 | $74,700 | −7.2% | IBIT range low by % depth |
+| Asset | Order | Level | Basis |
+| --- | --- | --- | --- |
+| ETH | stop order 0.013121 | $2,340 | 2.28 ATR, below the $2,357.79 BB lower |
+| SOL | stop order 0.48625 | $97 | 2.09 ATR, just above the $94.91 BB lower |
+| BTC | limit buy 0.001 | $74,700 | IBIT range low by % depth; on BTC's $74,811 BB lower |
+| BTC | limit buy 0.00098 | $76,000 | **not mine** — another agent, basis unknown |
 
-Patrol runs every three hours. Its first instruction is to place the $73,450 stop on the
-BTC bid the moment it fills, since a filled buy has no protection.
+The BTC bid at $74,700 gets independent corroboration from direct measurement: BTC's own
+20-day lower Bollinger band is **$74,811**, so the level derived through IBIT lands within
+0.15% of the coin's own statistical range edge.
+
+## A second agent is bidding the same asset
+
+An order appeared at 23:06 that this desk did not place — 0.00098 BTC at $76,000,
+`initiator_type` `agentic`, `ref_id` `cab9387d-22a2-4b73-9b82-82a4f8803e70`. It was left in
+place rather than overridden, since coordinating with the other agent is the user's call,
+not a unilateral one.
+
+Two consequences worth stating plainly. **Buying power is now $0.50**, because both bids
+reserve cash against $187.06. And **if both fill, BTC becomes about $149, or 54% of the
+account**, unprotected until the patrol acts. The patrol's first instruction now covers
+either or both orders, reads the actual filled quantity from positions rather than assuming,
+and is told to trim toward 30% if it judges 54% too concentrated.
+
+Patrol runs every two hours.
 
 ## Claims still resting on second-hand research
 
