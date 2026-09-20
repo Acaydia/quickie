@@ -113,3 +113,8 @@ Squeezy's own infrastructure instead of needing a database here.
 - `api/generate.js` — calls Anthropic, returns a preview + encrypted full text.
 - `api/unlock.js` — verifies payment with Lemon Squeezy, decrypts full text.
 - `lib/crypto.js`, `lib/prompt.js` — shared helpers (not deployed as routes).
+
+## Related
+
+The Robinhood crypto trading desk lives in a separate private repository:
+[`Acaydia/crypto-desk`](https://github.com/Acaydia/crypto-desk).
