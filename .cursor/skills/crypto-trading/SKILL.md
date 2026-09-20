@@ -19,7 +19,9 @@ A standing law, and it overrides everything below. No price level, stop, size, o
 
 Three failure modes, all of which have already happened here:
 
-**Asserting absence.** "AVAX has no ETF proxy, so its volatility is unmeasurable" was never checked. `search` returns four AVAX proxies in one call. The false claim is what left AVAX holding a position with no stop. **Before concluding data does not exist, run the lookup that would find it** — enumerate the namespace, run `search`, read the `description` field. Absence of evidence has to be demonstrated, not assumed.
+**Asserting absence.** This one has now happened three times, each time cheaper to check than to assume. "AVAX has no ETF proxy" — `search` returns four. "Crypto has no price history" — the scanner returns ATR, RSI, Bollinger bands and pivots for the entire crypto universe in one call. The first false claim left AVAX with no stop at all; the second built an entire proxy apparatus whose numbers understated alt volatility by up to 42%.
+
+Note the failure was subtler the second time: enumerating tool names and finding no `get_crypto_historicals` is *evidence*, and the dedicated historicals tools really do reject crypto. But a tool's name is not its capability surface, and an adjacent subsystem carried the data all along. **Absence has to be demonstrated by a call that failed, not inferred from a catalogue that lacked the obvious name.** Run the lookup: enumerate, `search`, read `description`, and try the call on the asset you doubt.
 
 **Inheriting an inference.** A subagent labelled its IBIT-to-BTC ratio "inferred, ±0.3%", and that caveat was dropped when the number became a resting order 6.5% from market. **A figure does not become measured by being passed along.** Carry the error bar, or re-derive it from something you can measure — and prefer the derivation that needs fewer unmeasurable inputs.
 
@@ -145,25 +147,39 @@ So a limit order saves the spread only when you are willing to wait for the mark
 
 **Crypto has no OCO, and a resting sell reserves the units.** After placing a sell, `quantity_transferable` goes to zero and `quantity_held_for_sell` takes the full amount. A position can therefore carry a take-profit **or** a stop, never both, unless you split the quantity across two orders. Equities do have true OCO via `place_advanced_order`, but it requires whole shares and regular hours.
 
-**Robinhood exposes no price history or indicators for crypto.** Verified by enumerating the namespace: the only historicals tools are `get_equity_historicals`, `get_index_historicals` and `get_option_historicals`, and the only crypto price tool is `get_crypto_quotes`, which returns bid/ask/mark plus the previous close and nothing more. So every volatility measurement has to come through an equity proxy.
+**Crypto has full technical data. Use `preview_scan`, not equity proxies.** This corrects the most damaging error this document ever contained. The dedicated tools genuinely do refuse crypto — `get_equity_historicals` 404s on both `BTC-USD` and `BTCUSD`, `get_index_historicals` rejects a currency-pair UUID, and `get_crypto_quotes` returns only bid/ask/mark plus the previous close. Enumerating tool *names* therefore makes it look as though no crypto history exists. That inference was wrong, and it stood only because nobody tried the call.
 
-**Never conclude an asset has no proxy without running `search` on its name.** This is the expensive lesson. AVAX and SUI were both written off here as unmeasurable, which is why AVAX sat with no stop. Both have proxies, and `search` finds them in one call:
+The scanner carries it. `FILTER_TYPE_INSTRUMENT_TYPE` accepts `CRYPTO`, and every expression from `get_scanner_datapoints` evaluates against crypto pairs — `atr`, `rsi`, `bollingerBandUp/Down`, `pricePosInRange`, `pricePosInBollinger`, `distanceFromPivotS1/S2`, `macd`, `adx`, on any `candlePeriod` from `1m` to `1y`. One `preview_scan` call returns the whole tradable crypto universe with all of it attached.
 
-| Asset | 1x proxies | Leveraged | Measured ATR |
+```
+filters: [{filter_type: "FILTER_TYPE_INSTRUMENT_TYPE", predicate: "=", values: ["CRYPTO"]}]
+columns: [{display_name: "ATR 14d",
+           expression: "atr(candleCount=14, candlePeriod=\"1d\", session=\"all\")"}]
+```
+
+**Proxies systematically understate crypto volatility, and the error grows as the asset gets smaller.** Measured the same evening, direct against proxy-derived:
+
+| Asset | Proxy said | Direct | Proxy error |
 | --- | --- | --- | --- |
-| BTC | IBIT | BITX (2x) | 3.03% |
-| ETH | ETHA | — | 3.67% |
-| SOL | SOLZ, VSOL, BSOL, FSOL | SOLT, SLON (2x) | 4.23% |
-| AVAX | VAVX, BAVA, GAVA | AVAZ (2x) | 3.0–3.4% |
-| SUI | none found | SUIL (2x) | 4.71% |
+| BTC | 3.03% (IBIT) | **2.81%** | 8% high |
+| ETH | 3.67% (ETHA) | **3.97%** | 8% low |
+| SOL | 4.23% (SOLZ) | **4.76%** | 11% low |
+| AVAX | 3.0-3.4% (VAVX) | **5.14%** | 34-42% low |
+| SUI | 4.71% (SUIL halved) | **6.19%** | 24% low |
 
-**Read each fund's own `description` in `get_equity_fundamentals` to get its leverage — never infer it from the ticker.** ETHA "seeks to track the spot price of Ether" and SOLZ provides "the same daily price movements of Solana", so both are 1x and their ATR transfers directly. BITX, AVAZ and SUIL each say "2x the daily price movements", so halve theirs. Guessing that SOLZ was 2x and halving its ATR understates Solana's volatility by half and yields a stop twice as tight as intended — a correctly-reasoned stop that still gets chopped out.
+Every proxy-derived stop on an alt is therefore far tighter in real ATR terms than intended — an AVAX stop believed to sit at 3.5 ATR was actually at 2.05 ATR. Thin proxy volume and the daily-reset decay of leveraged vehicles both damp measured range, and halving a 2x ETF's ATR compounds it.
 
-**Cross-check an asset's ATR against a second proxy when one exists.** AVAX measured 3.40% via VAVX (ATR $0.5881 on a $17.30 close) and 3.02% via AVAZ halved (ATR $0.6752 on ~$11.18), which agree closely enough to trust. Also sanity-check the resulting ladder: BTC 3.03% < AVAX 3.2% < ETH 3.67% < SOL 4.23% < SUI 4.71% is a sensible large-to-small-cap ordering, and a number that breaks the ordering is usually a leverage error.
+**Two traps, both of which fail silently.**
 
-Two limits on proxy data, both real. **Thin proxies understate ATR** — VAVX averages about 11,000 shares a day, and an illiquid series under-reports true range, so treat its ATR as a floor. **Proxies are stale for weekend crypto moves**, because the ETF's last close is Friday's: VAVX's Friday close predates a 14% Saturday AVAX rally entirely.
+*Ticker collision.* Scoping with `symbol ANY_OF ["BTC", "ETH"]` returns the **Grayscale Bitcoin Mini Trust ETF** and a Grayscale Ethereum ETF — real equities holding those tickers, with `instrument_type: EQUITY` and an ATR of 1.07 on a $35.77 price. Nothing errors. Treating that as Bitcoin's ATR of 2255.97 on $80,207 is a 2,000x mistake.
 
-**To convert an equity proxy level into a crypto price, use percentage depth, not a holdings ratio.** The API does not expose an ETF's coin holdings, so any BTC-per-share figure is inferred and carries error. Percentage works because a spot ETF tracks spot: measure the move you want on the proxy, then apply that percentage to the coin's own quoted price. Worked example — IBIT's verified range low 42.370 against its verified 46.020 close is a 7.93% decline, so on BTC's $81,112.61 previous close the range-low equivalent is $74,679.
+*The symbol field is not the ticker.* Combining the `CRYPTO` type filter with `symbol ANY_OF ["BTC"]` returns **zero rows**, because `symbol` is dxFeed symbology while the `Symbol` shown in results is Robinhood's ticker. So there is no working way to scope by name — filter on `CRYPTO` and read the rows you want out of the result. The universe is only about 49 pairs, so add a coarse `FILTER_TYPE_LAST` bound if the payload needs trimming.
+
+Also check for blank cells before relying on a row: newly listed pairs (LIT, AERO, MNT, XTZ) return an empty ATR despite matching the filter, and a couple (MOODENG at RSI 7.4, XCN) show zero volume with stale readings.
+
+**Equity proxies still have two narrow uses,** now that direct measurement exists: trading the proxy itself (IBIT, BITX and MSTR have options, OCO brackets and whole-share pricing that crypto lacks), and reading equity-market structure such as ETF flows. For measuring a coin, prefer the coin.
+
+**When converting an equity level into a crypto price, use percentage depth, never a holdings ratio.** The API exposes no fund holdings, so any coin-per-share figure is inferred. A spot ETF tracks spot, so a percentage transfers cleanly: IBIT's verified 42.370 range low against its 46.020 close is 7.93%, which on BTC's $81,112.61 previous close gives $74,679.
 
 **Alerts are not exits.** `create_alert` only notifies. An alert firing while no agent is running accomplishes nothing. Anything that must happen without supervision has to be a resting order in the broker's book.
 
