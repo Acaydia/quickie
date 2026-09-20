@@ -129,7 +129,13 @@ So a limit order saves the spread only when you are willing to wait for the mark
 
 **Crypto has no OCO, and a resting sell reserves the units.** After placing a sell, `quantity_transferable` goes to zero and `quantity_held_for_sell` takes the full amount. A position can therefore carry a take-profit **or** a stop, never both, unless you split the quantity across two orders. Equities do have true OCO via `place_advanced_order`, but it requires whole shares and regular hours.
 
-**Robinhood exposes no price history or indicators for crypto.** There is no crypto historicals or technical-indicator endpoint. Use equity ETF proxies for all analysis: **IBIT** for BTC, **ETHA** for ETH, **SOLZ** for SOL (leveraged, so halve its ATR). Assets without a proxy — most alts — can only be traded off a live quote, with no measurable volatility and therefore no defensible position size. That is a data limit, not a judgement call.
+**Robinhood exposes no price history or indicators for crypto.** There is no crypto historicals or technical-indicator endpoint. Use equity ETF proxies for all analysis: **IBIT** for BTC, **ETHA** for ETH, **SOLZ** for SOL.
+
+**Check each proxy's leverage in `get_equity_fundamentals` before scaling its ATR.** ETHA's description reads "passively managed, seeks to track the spot price of Ether," and SOLZ's reads "providing the same daily price movements of Solana" — **both are 1x, so their ATR transfers directly with no adjustment.** BITX is the genuinely leveraged one, measured at 1.96x IBIT on the 18 Sep session. Assuming SOLZ was 2x and halving its ATR understates Solana's volatility by half and produces a stop roughly twice as tight as intended, which is how a correctly-reasoned stop still gets chopped out.
+
+Measured 14-day daily ATR on the 18 Sep close: ETHA $0.7308 on a $19.92 close, or 3.67%. SOLZ $0.4821 on an $11.40 close, or 4.23%. Sanity-check any proxy ATR against a peer before trusting it — SOLZ at 1.15x ETHA is plausible for spot Solana, whereas the 10%+ it would imply under a 2x assumption is not.
+
+Assets without a proxy — most alts, including AVAX and SUI — can only be traded off a live quote, with no measurable volatility and therefore no defensible stop distance. Do not invent one. That is a data limit, not a judgement call, and the honest response is either to size small enough that the position can go to zero or to leave the position unprotected and say so.
 
 **Alerts are not exits.** `create_alert` only notifies. An alert firing while no agent is running accomplishes nothing. Anything that must happen without supervision has to be a resting order in the broker's book.
 
