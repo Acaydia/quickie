@@ -1,0 +1,17 @@
+{
+  "name": "Occasion Speech Writer",
+  "install": "cd occasion-speech-writer && npm install",
+  "terminals": [
+    {
+      "name": "dev-server",
+      "command": "cd occasion-speech-writer && npm run dev:local",
+      "description": "Local dev server for the speech-writer app (static pages + /api functions) on http://localhost:3000. Set ANTHROPIC_API_KEY / LEMONSQUEEZY_API_KEY as secrets for real generation/unlock, or run `npm run dev:mock` to stub those APIs."
+    }
+  ],
+  "ports": [
+    {
+      "name": "web server",
+      "port": 3000
+    }
+  ]
+}

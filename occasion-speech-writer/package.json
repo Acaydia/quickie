@@ -4,7 +4,9 @@
   "private": true,
   "description": "AI-generated wedding, best man, and retirement speeches with a pay-to-unlock full version.",
   "scripts": {
-    "dev": "vercel dev"
+    "dev": "vercel dev",
+    "dev:local": "node dev-server.js",
+    "dev:mock": "DEV_MOCKS=1 node dev-server.js"
   },
   "engines": {
     "node": ">=18"

@@ -1,0 +1,5 @@
+# Local dev tooling — not part of the Vercel deployment.
+node_modules
+dev-server.js
+.env
+.env.local
