@@ -115,7 +115,11 @@ Do not average these. Pick deliberately.
 
 Every item here was observed directly in API responses. Re-verify with `preview_crypto_order` rather than trusting this from memory.
 
-**Limit orders avoid the spread entirely; market orders pay about 0.95% per side.** A market sell preview priced BTC at $80,356 against an $81,146 mark — a 0.97% haircut. A limit sell of 3.7925 AVAX at $10.50 credited exactly $39.82, which is the full quantity times the limit price. Both showed `estimated_fee: 0`. There is no commission; the spread is the entire cost, and limit orders do not pay it.
+**Market orders pay about 0.95% per side, and a limit order only avoids that if it is patient.** A market sell preview priced BTC at $80,356 against an $81,146 mark — a 0.97% haircut. Both order types show `estimated_fee: 0`, so the spread is the entire cost.
+
+The critical qualifier, measured the hard way: **fills happen against the bid, not the mark.** A BTC limit sell resting at $80,750 sat unfilled while the mark was $80,888, because the bid was $80,128 — the order needed the bid to climb 0.78%, not merely for the mark to sit above it. Repricing to the bid filled it at once, for essentially what a market order would have paid.
+
+So a limit order saves the spread only when you are willing to wait for the market to come to your price, and it saves nothing when you want out now. The spread is the price of immediacy and the only way to avoid it is patience. Use resting limits for take-profits and planned entries, where waiting is free. Do not expect a limit to cheapen an exit you actually need.
 
 **The quoted bid/ask is not a real spread.** Every pair quotes at a mechanically uniform 1.88-1.94% wide, BTC and small caps alike. That is a display band around the mark, not a tradable book. Market orders execute at the band edge; limit orders execute at your price.
 
