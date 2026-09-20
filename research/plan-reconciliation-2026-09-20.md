@@ -104,27 +104,71 @@ The better pre-computed setup is the opposite side of the same range: IBIT 1 sha
 **$42.75**, stop **$41.65**, targets **$44.34** (1.45R) and **$46.37** (3.29R), as an
 OCO bracket. Contrast that with 0.18:1 buying near $46.
 
-## Known unprotected exposure
+## Corrected: AVAX and SUI were never unmeasurable
 
-AVAX and SUI carry take-profits, not stops, so they have **no downside protection**.
-This is structural: crypto has no OCO and a resting sell reserves the units, so a
-position gets one or the other unless the quantity is split. Neither has an ETF proxy,
-so neither has a measurable ATR, and inventing a stop distance for them would be the
-guesswork the plan explicitly warns against. Combined they are $60.46, or 22% of the
-account — within the plan's ~23% blind-sleeve cap. Flagged rather than fixed.
+An earlier version of this document claimed AVAX and SUI had no ETF proxy and therefore
+no measurable ATR, and concluded that leaving them without stops was the honest response
+to a data limit. **That claim was an assertion nobody checked, and it is false.** One
+`search` call returns, with leverage read from each fund's own description:
+
+| Asset | 1x proxies | Leveraged | Measured ATR |
+| --- | --- | --- | --- |
+| AVAX | VAVX, BAVA, GAVA | AVAZ (2x) | 3.40% via VAVX, 3.02% via AVAZ halved |
+| SUI | none found | SUIL (2x) | 4.71% via SUIL halved |
+
+AVAX therefore gets a real stop. Its position was **split** — 1.9 units on a take-profit
+at $9.97, 1.8925 units on a stop at **$8.45**, which sits just below the $8.493 breakout
+base *and* lands at roughly 3.5 ATR. Structure and volatility agree independently, which
+is the strongest form a stop takes.
+
+SUI is being **exited** rather than stopped, at $0.819. Its measured ATR is 4.71%, so a
+stop was placeable — but SUI has no identified catalyst, its move round-tripped fully
+(it now trades below the $0.8295 close it started from), and there is no structural
+level to anchor an invalidation to. A volatility multiple alone would have been a number
+dressed as a thesis.
+
+Two honest limits on the new numbers: VAVX trades about 11,000 shares a day, and a thin
+series under-reports true range, so 3.40% is a floor rather than a point estimate. And
+every proxy's last close is Friday's, which predates AVAX's 14% Saturday move entirely.
+
+## Corrected: the BTC bid rested on an inherited inference
+
+The original bid at $75,700 came from dividing an IBIT level by a BTC-per-share ratio a
+subagent had explicitly labelled "inferred, ±0.3%". That caveat was dropped when the
+number became a live order. The API does not expose a fund's coin holdings, so no such
+ratio can be measured here.
+
+Re-derived using **percentage depth**, which needs no ratio because a spot ETF tracks
+spot. IBIT's range low of 42.370 against its 46.020 close is a **7.93%** decline;
+applied to BTC's $81,112.61 previous close that is **$74,679**. The bid was moved to
+**$74,700**, and the stop for a filled bid to **$73,450** — IBIT's range low less 0.5
+ATR (41.674, or 9.445% down) through the same conversion.
+
+Every input is now measured: both range endpoints verified from my own daily bars, IBIT
+ATR(14) measured at 1.3929, and BTC's previous close read from the quote.
 
 ## Live orders
 
-| Asset | Order | Level | Distance | Purpose |
+| Asset | Order | Level | Distance | Basis |
 | --- | --- | --- | --- | --- |
-| AVAX | limit sell 3.7925 | $9.97 | +4.4% | harvest under $10 before Helicon |
-| SUI | limit sell 29 | $0.897 | +7.2% | harvest under $0.90 |
-| ETH | stop order 0.013121 | $2,340 | −9.8% | protection, 2.67 ATR |
-| SOL | stop order 0.48625 | $97 | −10.5% | protection, 2.47 ATR |
-| BTC | limit buy 0.00099 | $75,700 | −6.5% | range-low re-entry |
+| AVAX | limit sell 1.9 | $9.97 | +4.1% | under the $10 round number |
+| AVAX | stop order 1.8925 | $8.45 | −11.8% | below $8.493 base, ~3.5 ATR |
+| SUI | limit sell 29 | $0.819 | at bid | exit, no thesis |
+| ETH | stop order 0.013121 | $2,340 | −9.8% | 2.67 ATR via ETHA |
+| SOL | stop order 0.48625 | $97 | −10.5% | 2.47 ATR via SOLZ |
+| BTC | limit buy 0.001 | $74,700 | −7.2% | IBIT range low by % depth |
 
-Patrol runs every three hours. Its first instruction is to place a stop on the BTC bid
-the moment it fills, since a filled buy has no protection.
+Patrol runs every three hours. Its first instruction is to place the $73,450 stop on the
+BTC bid the moment it fills, since a filled buy has no protection.
+
+## Claims still resting on second-hand research
+
+Flagged rather than relied upon alone. The Fed hike to 3.75-4% on 16 Sep and the negative
+$746M of ETF flows across 15-16 Sep both came from a subagent's web research, not the
+broker API, and neither has been independently verified here. They corroborate the BTC
+exit but were not its basis — the range measurement was. The MSTR and COIN beta figures
+(2.6x up against 2.1x down, and 1.9x against 3.7x) rest on **two sessions**, which is far
+too small a sample to be called a beta; treat them as directional, not quantitative.
 
 ## Options
 
